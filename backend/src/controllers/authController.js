@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const config = require('../config');
 const logger = require('../utils/logger');
 
-// Generate JWT Token
+
 const generateToken = (user) => {
   return jwt.sign(
     { 
@@ -22,12 +22,11 @@ const generateToken = (user) => {
   );
 };
 
-// Register a new user
+
 exports.register = async (req, res) => {
   try {
     const { name, email, password, userType, department, designation, phoneNumber, address, idProof } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -36,10 +35,10 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Determine if email is government email
+   
     const isGovernmentEmail = User.isGovernmentEmail(email);
     
-    // Validate user type against email
+  
     if (userType === 'official' && !isGovernmentEmail) {
       return res.status(400).json({
         status: 'error',
@@ -47,7 +46,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Create new user
+    
     const newUser = new User({
       name,
       email,
@@ -56,24 +55,21 @@ exports.register = async (req, res) => {
       ...(userType === 'official' && { department, designation }),
       ...(userType === 'citizen' && { address, idProof }),
       phoneNumber,
-      // For officials, automatically verify email if it's a government email
+      
       isEmailVerified: isGovernmentEmail,
       role: userType === 'official' ? config.roles.OFFICIAL : config.roles.CITIZEN
     });
 
-    // Generate email verification token if not a government email
+    
     if (!isGovernmentEmail) {
       const verificationToken = crypto.randomBytes(32).toString('hex');
       newUser.emailVerificationToken = verificationToken;
-      newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+      newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; 
     }
 
-    // Save user to database
+    
     await newUser.save();
 
-    // TODO: Send verification email if not a government email
-
-    // Create token
     const token = generateToken(newUser);
 
     res.status(201).json({
@@ -101,12 +97,11 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login user
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if email and password are provided
+
     if (!email || !password) {
       return res.status(400).json({
         status: 'error',
@@ -114,10 +109,10 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Find user by email with password included
+   
     const user = await User.findByEmailWithPassword(email);
 
-    // Check if user exists and password is correct
+    
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         status: 'error',
@@ -125,7 +120,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if user is active
+    
     if (!user.isActive) {
       return res.status(401).json({
         status: 'error',
@@ -133,11 +128,11 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Update last login time
+ 
     user.lastLogin = Date.now();
     await user.save({ validateBeforeSave: false });
 
-    // Create token
+ 
     const token = generateToken(user);
 
     res.status(200).json({
@@ -170,7 +165,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// Get current user's profile
+
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -217,20 +212,19 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Update user profile
+
 exports.updateProfile = async (req, res) => {
   try {
-    // Fields that are allowed to be updated
+   
     const allowedUpdates = ['name', 'phoneNumber', 'blockchainAddress'];
     
-    // Additional fields based on user type
     if (req.user.userType === 'official') {
       allowedUpdates.push('designation');
     } else {
       allowedUpdates.push('address');
     }
 
-    // Filter out fields that are not allowed to be updated
+   
     const updates = {};
     Object.keys(req.body).forEach(key => {
       if (allowedUpdates.includes(key)) {
@@ -238,7 +232,7 @@ exports.updateProfile = async (req, res) => {
       }
     });
 
-    // Update user
+   
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       updates,
@@ -286,12 +280,12 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Change password
+
 exports.updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    // Check if current password and new password are provided
+  
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         status: 'error',
@@ -299,7 +293,7 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    // Find user with password included
+    
     const user = await User.findById(req.user.id).select('+password');
 
     if (!user) {
@@ -309,19 +303,16 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    // Check if current password is correct
     if (!(await user.comparePassword(currentPassword))) {
       return res.status(401).json({
         status: 'error',
         message: 'Current password is incorrect'
       });
     }
-
-    // Update password
     user.password = newPassword;
     await user.save();
 
-    // Generate new token
+   
     const token = generateToken(user);
 
     res.status(200).json({
@@ -339,7 +330,7 @@ exports.updatePassword = async (req, res) => {
   }
 };
 
-// Request password reset
+
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -351,7 +342,7 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    // Find user by email
+   
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -361,10 +352,10 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate reset token
+    
     const resetToken = crypto.randomBytes(32).toString('hex');
 
-    // Hash token and save to user
+    
     user.resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
@@ -373,7 +364,6 @@ exports.forgotPassword = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 1 * 60 * 60 * 1000; // 1 hour
     await user.save({ validateBeforeSave: false });
 
-    // TODO: Send password reset email
 
     res.status(200).json({
       status: 'success',
@@ -389,7 +379,7 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// Reset password
+
 exports.resetPassword = async (req, res) => {
   try {
     const { password } = req.body;
@@ -402,13 +392,13 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // Hash token to compare with stored token
+    
     const hashedToken = crypto
       .createHash('sha256')
       .update(token)
       .digest('hex');
 
-    // Find user with matching token and non-expired token
+    
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }
@@ -421,13 +411,13 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // Update password and clear reset token
+  
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    // Create new token
+   
     const jwtToken = generateToken(user);
 
     res.status(200).json({
@@ -445,12 +435,12 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// Verify email
+
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
 
-    // Find user with matching token and non-expired token
+  
     const user = await User.findOne({
       emailVerificationToken: token,
       emailVerificationExpires: { $gt: Date.now() }
@@ -463,7 +453,6 @@ exports.verifyEmail = async (req, res) => {
       });
     }
 
-    // Update user
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;

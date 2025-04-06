@@ -5,11 +5,10 @@ const path = require('path');
 const logger = require('../utils/logger');
 const config = require('../../config');
 
-// Load ABI from the JSON file
+
 const abiPath = path.join(__dirname, 'abi/ExpenditureTracker.json');
 const contractABI = JSON.parse(fs.readFileSync(abiPath, 'utf8'));
 
-// Config from environment variables
 const BLOCKCHAIN_ENABLED = config.blockchain.enabled;
 const BLOCKCHAIN_PROVIDER = config.blockchain.provider;
 const CONTRACT_ADDRESS = config.blockchain.contractAddress;
@@ -17,14 +16,12 @@ const OWNER_PRIVATE_KEY = config.blockchain.ownerPrivateKey;
 const GAS_LIMIT = config.blockchain.gasLimit;
 const GAS_PRICE = config.blockchain.gasPrice;
 
-// Initialize provider and wallet
+
 let provider;
 let wallet;
 let contract;
 
-/**
- * Initialize the blockchain connection
- */
+
 async function initBlockchain() {
   if (!BLOCKCHAIN_ENABLED) {
     logger.info('Blockchain integration is disabled');
@@ -35,7 +32,7 @@ async function initBlockchain() {
     logger.info(`Connecting to blockchain provider at ${BLOCKCHAIN_PROVIDER}`);
     provider = new ethers.JsonRpcProvider(BLOCKCHAIN_PROVIDER);
     
-    // Check connection
+   
     await provider.getBlockNumber();
     
     if (!CONTRACT_ADDRESS) {
@@ -48,10 +45,10 @@ async function initBlockchain() {
       return false;
     }
     
-    // Create wallet with private key
+  
     wallet = new ethers.Wallet(OWNER_PRIVATE_KEY, provider);
     
-    // Create contract instance
+  
     contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
     
     logger.info(`Connected to contract at ${CONTRACT_ADDRESS}`);
@@ -144,7 +141,7 @@ async function addExpenditure(expenditure, projectId) {
 /**
  * Verify an expenditure on the blockchain
  * @param {string} expenditureId - MongoDB expenditure ID
- * @returns {Promise<Object>} - Transaction receipt
+ * @returns {Promise<Object>}
  */
 async function verifyExpenditure(expenditureId) {
   if (!BLOCKCHAIN_ENABLED || !contract) {

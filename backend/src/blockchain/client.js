@@ -4,13 +4,13 @@ const path = require('path');
 const logger = require('../utils/logger');
 const config = require('../../config');
 
-// Configuration
+
 const BLOCKCHAIN_ENABLED = config.blockchain.enabled;
 const BLOCKCHAIN_PROVIDER = config.blockchain.provider;
 const CONTRACT_ADDRESS = config.blockchain.contractAddress;
 const OWNER_PRIVATE_KEY = config.blockchain.ownerPrivateKey;
 
-// Load ABI
+
 const contractAbiPath = path.join(__dirname, 'abi/ExpenditureTracker.json');
 let contractAbi;
 
@@ -21,9 +21,7 @@ try {
   contractAbi = [];
 }
 
-/**
- * Blockchain client class provides a wrapper for ethers.js
- */
+
 class BlockchainClient {
   constructor() {
     this.provider = null;
@@ -43,15 +41,15 @@ class BlockchainClient {
     }
 
     try {
-      // Create provider
+     
       logger.info(`Connecting to blockchain provider at ${BLOCKCHAIN_PROVIDER}`);
       this.provider = new ethers.JsonRpcProvider(BLOCKCHAIN_PROVIDER);
       
-      // Test connection
+     
       const blockNumber = await this.provider.getBlockNumber();
       logger.info(`Connected to blockchain. Current block number: ${blockNumber}`);
       
-      // Check for required config
+    
       if (!CONTRACT_ADDRESS) {
         logger.error('CONTRACT_ADDRESS is not configured');
         return false;
@@ -62,11 +60,11 @@ class BlockchainClient {
         return false;
       }
       
-      // Create wallet with private key
+    
       this.wallet = new ethers.Wallet(OWNER_PRIVATE_KEY, this.provider);
       logger.info(`Using wallet address: ${this.wallet.address}`);
       
-      // Create contract instance
+    
       this.contract = new ethers.Contract(
         CONTRACT_ADDRESS,
         contractAbi,
@@ -75,7 +73,7 @@ class BlockchainClient {
       
       logger.info(`Connected to contract at address: ${CONTRACT_ADDRESS}`);
       
-      // Check connection to contract
+     
       const contractOwner = await this.contract.owner();
       logger.info(`Contract owner: ${contractOwner}`);
       
@@ -197,7 +195,7 @@ class BlockchainClient {
   }
 }
 
-// Create singleton instance
+
 const client = new BlockchainClient();
 
 module.exports = client; 

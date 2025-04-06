@@ -190,9 +190,14 @@ function App() {
   const [name, setName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    if (e) e.preventDefault();
     setIsLoggedIn(true);
     setUserType(email.endsWith('@gov.in') ? 'official' : 'citizen');
+  };
+
+  const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(e.target.value);
   };
 
   const SignInPage = () => (
@@ -209,7 +214,7 @@ function App() {
           </h2>
           <p className={`mt-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {isSignUp 
-              ? 'सार्वजनिक निधि ट्रैकर पर नया खाता बनाएं / Create a new account on Public Fund Tracker'
+              ? 'सार्वजनिक निधि ट्रैकर पर नया खाता बनाएं / Create a new account on ArthSetu'
               : 'अपने खाते में प्रवेश करें / Access your account'}
           </p>
         </div>
@@ -250,7 +255,7 @@ function App() {
                   type="text"
                   required
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={handleInputChange(setName)}
                   className={`appearance-none block w-full px-3 py-2 border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
                 />
               </div>
@@ -269,7 +274,7 @@ function App() {
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleInputChange(setEmail)}
                 className={`appearance-none block w-full px-3 py-2 border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
                 placeholder={userType === 'official' ? 'name@gov.in' : 'name@example.com'}
               />
@@ -294,7 +299,7 @@ function App() {
                 autoComplete="current-password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handleInputChange(setPassword)}
                 className={`appearance-none block w-full px-3 py-2 border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
               />
               <button
@@ -742,7 +747,7 @@ function App() {
               />
               <div>
                 <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>सार्वजनिक निधि ट्रैकर</h1>
-                <h2 className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Public Fund Tracker</h2>
+                <h2 className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>ArthSetu</h2>
               </div>
             </div>
             <div className="flex items-center space-x-4">

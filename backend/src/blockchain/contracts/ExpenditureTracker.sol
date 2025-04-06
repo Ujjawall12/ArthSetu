@@ -12,7 +12,7 @@ contract ExpenditureTracker {
     uint8 private constant ROLE_OFFICIAL = 1;
     uint8 private constant ROLE_ADMIN = 2;
     
-    // Storage structures
+   
     struct Project {
         bytes32 id;
         bytes32 name;
@@ -49,7 +49,7 @@ contract ExpenditureTracker {
         bytes32 responseHash;
     }
     
-    // State variables
+   
     address public owner;
     mapping(address => uint8) public roles;
     mapping(bytes32 => Project) private projects;
@@ -57,7 +57,6 @@ contract ExpenditureTracker {
     mapping(bytes32 => Complaint) private complaints;
     bytes32[] private projectIds;
     
-    // Events
     event ProjectCreated(
         bytes32 indexed id,
         bytes32 name,
@@ -92,7 +91,7 @@ contract ExpenditureTracker {
         bytes32 responseHash
     );
     
-    // Modifiers
+   
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the owner can call this function");
         _;
@@ -114,12 +113,12 @@ contract ExpenditureTracker {
         _;
     }
     
-    // Constructor
+  
     constructor() {
         owner = msg.sender;
     }
     
-    // Owner/Admin functions
+   
     function addOfficial(address officialAddress, bool isAdmin) public onlyAdmin {
         roles[officialAddress] = isAdmin ? ROLE_ADMIN : ROLE_OFFICIAL;
         emit OfficialAdded(officialAddress);
@@ -131,7 +130,7 @@ contract ExpenditureTracker {
         emit OfficialRemoved(officialAddress);
     }
     
-    // Project management functions
+    
     function createProject(
         bytes32 id,
         bytes32 name,
@@ -161,7 +160,7 @@ contract ExpenditureTracker {
         projects[projectId].budget = newBudget;
     }
     
-    // Expenditure tracking functions
+   
     function addExpenditure(
         bytes32 id,
         bytes32 projectId,
@@ -206,7 +205,7 @@ contract ExpenditureTracker {
         );
     }
     
-    // Complaint functions
+  
     function submitComplaint(
         bytes32 id,
         bytes32 projectId,
@@ -241,7 +240,6 @@ contract ExpenditureTracker {
         emit ComplaintResolved(complaintId, responseHash);
     }
     
-    // Getters
     function getProject(bytes32 projectId) public view returns (
         bytes32 id,
         bytes32 name,
