@@ -1,4 +1,4 @@
-// Simple setup script for ArthSetu testing
+// Simple setup script for VittaSutra testing
 const hre = require("hardhat");
 
 async function main() {

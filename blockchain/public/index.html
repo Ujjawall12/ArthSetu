@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ArthSetu Blockchain Interface</title>
+  <title>VittaSutra Blockchain Interface</title>
   <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
   <script src="./js/metamaskConnector.js"></script>
   <style>
@@ -125,7 +125,7 @@
 </head>
 <body>
   <header>
-    <h1>ArthSetu Blockchain Interface</h1>
+    <h1>VittaSutra Blockchain Interface</h1>
     <p>Transparent and immutable tracking of public funds</p>
   </header>
 
@@ -134,7 +134,7 @@
     <p>Connect your MetaMask wallet to interact with the blockchain.</p>
     <div class="actions">
       <button id="connectButton">Connect MetaMask</button>
-      <button id="addToMetaMaskButton" class="secondary-button">Add ArthSetu to MetaMask</button>
+      <button id="addToMetaMaskButton" class="secondary-button">Add VittaSutra to MetaMask</button>
     </div>
     
     <div id="accountInfo" class="hidden">
@@ -260,7 +260,7 @@
           }
 
           const chainId = '0x539'; // Hex value of 1337
-          const chainName = 'ArthSetu Local Network';
+          const chainName = 'VittaSutra Local Network';
           const rpcUrls = ['http://127.0.0.1:8546'];
           const blockExplorerUrls = [];
           const nativeCurrency = {
@@ -297,7 +297,7 @@
             });
           }
 
-          showToast('ArthSetu network successfully added to MetaMask!');
+          showToast('VittaSutra network successfully added to MetaMask!');
         } catch (error) {
           console.error('Error adding network to MetaMask:', error);
           alert('Error adding network to MetaMask: ' + error.message);

@@ -241,12 +241,12 @@ if (typeof window !== 'undefined') {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ArthSetu Blockchain Interface</title>
+  <title>VittaSutra Blockchain Interface</title>
   <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
   <script src="./metamaskConnector.js"></script>
 </head>
 <body>
-  <h1>ArthSetu Blockchain Demo</h1>
+  <h1>VittaSutra Blockchain Demo</h1>
   
   <button id="connectButton">Connect to MetaMask</button>
   <div id="accountInfo" style="display:none;">

@@ -1,6 +1,6 @@
-# ArthSetu Blockchain Integration
+# VittaSutra Blockchain Integration
 
-This directory contains a local blockchain setup using Hardhat for the ArthSetu platform, allowing transparent tracking of government funds and projects.
+This directory contains a local blockchain setup using Hardhat for the VittaSutra platform, allowing transparent tracking of government funds and projects.
 
 ## Prerequisites
 
