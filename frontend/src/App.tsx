@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useRef } from 'react';
 import { Sun, Moon, Bell, UserCircle2, Search, ChevronDown, Building2, CircleDollarSign, AlertCircle, BarChart3, PieChart, Clock, CheckCircle2, AlertTriangle, Flag, Users, FileText, Home, Settings, MessageCircle, XCircle, Wallet, TrendingUp, Activity, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import Web3 from 'web3';
 
@@ -29,7 +29,7 @@ interface Expenditure {
   amount: number;
   date: string;
   category: string;
-  description: string;
+  description?: string;
   approvedBy?: string;
 }
 
@@ -226,6 +226,9 @@ function App() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
 
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
   const handleLogin = (e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) e.preventDefault();
     setIsLoggedIn(true);
@@ -234,6 +237,12 @@ function App() {
 
   const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setter(e.target.value);
+    // Keep track of the currently focused element
+    if (document.activeElement === emailRef.current) {
+      setTimeout(() => emailRef.current?.focus(), 0);
+    } else if (document.activeElement === passwordRef.current) {
+      setTimeout(() => passwordRef.current?.focus(), 0);
+    }
   };
 
   const SignInPage = () => (
@@ -309,6 +318,7 @@ function App() {
                 type="email"
                 autoComplete="email"
                 required
+                ref={emailRef}
                 value={email}
                 onChange={handleInputChange(setEmail)}
                 className={`appearance-none block w-full px-3 py-2 border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
@@ -334,6 +344,7 @@ function App() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
+                ref={passwordRef}
                 value={password}
                 onChange={handleInputChange(setPassword)}
                 className={`appearance-none block w-full px-3 py-2 border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
