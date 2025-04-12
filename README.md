@@ -53,6 +53,7 @@ A blockchain-based system for transparent tracking of government project expendi
 - Node.js 18+ and npm
 - MongoDB
 - Ethereum node (or Ganache for local development)
+- MetaMask browser extension
 
 ### Backend Setup
 
@@ -102,6 +103,48 @@ A blockchain-based system for transparent tracking of government project expendi
 
 4. Access the application at http://localhost:5173 (or the port shown in the console)
 
+## Blockchain Integration
+
+### Smart Contract Deployment
+
+1. The smart contract is deployed using Hardhat:
+   ```
+   npx hardhat run scripts/deploy.js --network localhost
+   ```
+
+2. After deployment, update the contract address in:
+   - `backend/.env` (CONTRACT_ADDRESS)
+   - `frontend/src/config/blockchain.ts` (defaultContractAddress)
+
+### Project Creation on Blockchain
+
+1. Connect MetaMask to the local network (chain ID 1337)
+2. Click "Connect" in the application
+3. Fill out the project creation form:
+   - Project Name
+   - Description
+   - Department
+   - Total Budget (in ETH)
+   - Start Date
+   - End Date
+4. Submit the form to create the project on the blockchain
+
+### Recording Expenditures
+
+1. Projects must exist on both MongoDB and the blockchain
+2. To record an expenditure:
+   - Navigate to the project details
+   - Click "Add New Expenditure"
+   - Fill out the expenditure details
+   - Submit to record on the blockchain
+
+### Important Notes
+
+- Projects must be created on the blockchain before recording expenditures
+- The contract address must match between frontend and backend
+- MetaMask must be connected to the correct network
+- Only officials can create projects and record expenditures
+
 ## API Documentation
 
 The API includes the following endpoints:
@@ -110,14 +153,6 @@ The API includes the following endpoints:
 - `/api/projects` - Project CRUD operations
 - `/api/expenditures` - Expenditure tracking
 - `/api/complaints` - Citizen complaint management
-
-## Blockchain Integration
-
-The system uses a smart contract to ensure transparency and immutability:
-
-- Projects and expenditures are recorded on the blockchain
-- Verification of expenditures is tracked on-chain
-- Citizen complaints and resolutions are recorded for accountability
 
 ## Running in Production
 
