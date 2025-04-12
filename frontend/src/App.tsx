@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sun, Moon, Bell, UserCircle2, Search, ChevronDown, Building2, CircleDollarSign, AlertCircle, BarChart3, PieChart, Clock, CheckCircle2, AlertTriangle, Flag, Users, FileText, Home, Settings, MessageCircle, XCircle, Wallet, TrendingUp, Activity, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import Web3 from 'web3';
 
+// Add the following type declaration at the top of the file
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 interface Project {
   id: number;
@@ -28,6 +35,24 @@ interface Expenditure {
 
 
 type UserType = 'citizen' | 'official' | null;
+
+// Web3/Blockchain types
+interface Web3State {
+  isConnected: boolean;
+  account: string | null;
+  chainId: number | null;
+  balance: string | null;
+  error: string | null;
+}
+
+// Add blockchain contract interface
+interface BlockchainContract {
+  methods: {
+    recordExpense: (projectId: number, amount: string, description: string) => {
+      send: (options: { from: string }) => Promise<any>;
+    };
+  };
+}
 
 
 const projects: Project[] = [
@@ -184,11 +209,22 @@ function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [showPassword, setShowPassword] = useState(false);
   
+  // Web3/MetaMask state
+  const [web3State, setWeb3State] = useState<Web3State>({
+    isConnected: false,
+    account: null,
+    chainId: null,
+    balance: null,
+    error: null
+  });
+  
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   const handleLogin = (e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) e.preventDefault();
@@ -724,8 +760,205 @@ function App() {
     </>
   );
 
+  // MetaMask connection functions
+  const connectMetaMask = async () => {
+    try {
+      console.log("Connecting to MetaMask...");
+      if (typeof window.ethereum === 'undefined') {
+        console.error("MetaMask not found");
+        alert('मेटामास्क इंस्टॉल नहीं है। कृपया मेटामास्क इंस्टॉल करें / MetaMask is not installed. Please install MetaMask.');
+        return;
+      }
+      
+      // Request account access - most important part
+      console.log("Requesting accounts...");
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
+      console.log("Connected accounts:", accounts);
+      
+      if (!accounts || accounts.length === 0) {
+        console.error("No accounts returned");
+        alert('कोई खाता नहीं मिला / No accounts found');
+        return;
+      }
+      
+      // Get chain ID
+      const chainId = await window.ethereum.request({ 
+        method: 'eth_chainId' 
+      });
+      console.log("Current chain ID:", chainId);
+      
+      // Update state with account info
+      setWeb3State({
+        isConnected: true,
+        account: accounts[0],
+        chainId: parseInt(chainId, 16),
+        balance: "0.0",  // We'll skip balance for now to simplify
+        error: null
+      });
+      
+      console.log("MetaMask connection successful:", accounts[0]);
+      
+    } catch (error: any) {
+      console.error("MetaMask connection error:", error);
+      alert(`वॉलेट कनेक्ट करने में त्रुटि / Error connecting wallet: ${error.message}`);
+    }
+  };
+  
+  // Simplified network addition function
+  const addArthSetuNetwork = async () => {
+    try {
+      console.log("Adding ArthSetu network...");
+      if (typeof window.ethereum === 'undefined') {
+        console.error("MetaMask not found");
+        alert('मेटामास्क इंस्टॉल नहीं है। कृपया मेटामास्क इंस्टॉल करें / MetaMask is not installed. Please install MetaMask.');
+        return;
+      }
+      
+      // Add network
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: '0x539', // 1337 in hex
+          chainName: 'ArthSetu Local Network',
+          nativeCurrency: {
+            name: 'ETH',
+            symbol: 'ETH',
+            decimals: 18
+          },
+          rpcUrls: ['http://127.0.0.1:8545'],
+          blockExplorerUrls: []
+        }]
+      });
+      
+      console.log("Network added successfully");
+      
+    } catch (error: any) {
+      console.error("Add network error:", error);
+      alert(`नेटवर्क जोड़ने में त्रुटि / Error adding network: ${error.message}`);
+    }
+  };
+  
+  // Set up MetaMask event listeners
+  useEffect(() => {
+    if (typeof window.ethereum !== 'undefined') {
+      // Handle account changes
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length === 0) {
+          // User disconnected from MetaMask
+          setWeb3State({
+            isConnected: false,
+            account: null,
+            chainId: null,
+            balance: null,
+            error: null
+          });
+        } else {
+          setWeb3State(prev => ({
+            ...prev,
+            account: accounts[0],
+            isConnected: true
+          }));
+        }
+      });
+      
+      // Handle chain changes
+      window.ethereum.on('chainChanged', (chainId: string) => {
+        setWeb3State(prev => ({
+          ...prev,
+          chainId: parseInt(chainId, 16)
+        }));
+      });
+      
+      // Clean up event listeners
+      return () => {
+        window.ethereum.removeAllListeners('accountsChanged');
+        window.ethereum.removeAllListeners('chainChanged');
+      };
+    }
+  }, []);
+
+  // Add a simple debug mode toggle
+  const toggleDebug = () => {
+    setShowDebug(!showDebug);
+  };
+
+  const DebugPanel = () => {
+    if (!showDebug) return null;
+    
+    return (
+      <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} z-50 max-w-md`}>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-semibold">MetaMask Debug Info</h3>
+          <button onClick={toggleDebug} className="text-gray-500 hover:text-gray-700">
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="space-y-2 text-sm">
+          <div>
+            <strong>MetaMask Installed:</strong> {typeof window.ethereum !== 'undefined' ? 'Yes ✅' : 'No ❌'}
+          </div>
+          <div>
+            <strong>Connection Status:</strong> {web3State.isConnected ? 'Connected ✅' : 'Disconnected ❌'}
+          </div>
+          <div>
+            <strong>Account:</strong> {web3State.account || 'None'}
+          </div>
+          <div>
+            <strong>Chain ID:</strong> {web3State.chainId || 'Unknown'} {web3State.chainId === 1337 ? '(ArthSetu Local)' : ''}
+          </div>
+          <div>
+            <strong>Error:</strong> {web3State.error || 'None'}
+          </div>
+          
+          <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">
+            <button
+              onClick={() => {
+                console.log("Current Web3 State:", web3State);
+                console.log("Window Ethereum:", window.ethereum);
+                alert("Check browser console for detailed debug info");
+              }}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm w-full"
+            >
+              Log Debug Info to Console
+            </button>
+            
+            <button
+              onClick={connectMetaMask}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm w-full"
+            >
+              Try Connect MetaMask Again
+            </button>
+            
+            <button
+              onClick={addArthSetuNetwork}
+              className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm w-full"
+            >
+              Try Add ArthSetu Network Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!isLoggedIn) {
-    return <SignInPage />;
+    return (
+      <>
+        <SignInPage />
+        <div className="fixed bottom-4 right-4">
+          <button 
+            onClick={toggleDebug}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 p-2 rounded-full"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+        </div>
+        <DebugPanel />
+      </>
+    );
   }
 
   return (
@@ -751,6 +984,82 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* MetaMask Wallet Button */}
+              <div className="flex items-center">
+                {web3State.isConnected ? (
+                  <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                    <Wallet className="h-5 w-5 text-orange-500" />
+                    <span className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                      {web3State.account?.substring(0, 6)}...{web3State.account?.substring(38)}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${web3State.chainId === 1337 ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                      {web3State.chainId === 1337 ? 'ArthSetu' : `Chain: ${web3State.chainId}`}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          if (!web3State.account) return;
+                          
+                          const web3 = new Web3(window.ethereum);
+                          
+                          // Contract ABI and address
+                          const authorizeABI = [
+                            {
+                              "inputs": [
+                                {
+                                  "internalType": "address",
+                                  "name": "official",
+                                  "type": "address"
+                                }
+                              ],
+                              "name": "authorizeOfficial",
+                              "outputs": [],
+                              "stateMutability": "nonpayable",
+                              "type": "function"
+                            }
+                          ];
+                          
+                          const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+                          const authContract = new web3.eth.Contract(authorizeABI, contractAddress);
+                          
+                          // This will attempt to authorize the current account as an official
+                          // Note: This will only work if the current account is the contract owner
+                          await authContract.methods.authorizeOfficial(web3State.account).send({
+                            from: web3State.account
+                          });
+                          
+                          alert('आपका खाता अधिकृत है / Your account is authorized');
+                        } catch (error: any) {
+                          console.error('Authorization error:', error);
+                          alert(`अधिकृत करने में त्रुटि / Authorization error: ${error.message}`);
+                        }
+                      }}
+                      className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 ml-2 text-xs"
+                    >
+                      <Lock className="h-4 w-4" />
+                      <span>अधिकृत करें / Authorize</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={connectMetaMask}
+                      className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600"
+                    >
+                      <Wallet className="h-4 w-4" />
+                      <span>वॉलेट कनेक्ट करें / Connect Wallet</span>
+                    </button>
+                    <button
+                      onClick={addArthSetuNetwork}
+                      className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600"
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                      <span>ArthSetu नेटवर्क जोड़ें / Add Network</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              
               <button
                 onClick={() => setDarkMode(!darkMode)}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
@@ -1182,7 +1491,13 @@ function App() {
               <div className="flex justify-between items-center mb-4">
                 <h4 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>व्यय विवरण / Expenditure Details</h4>
                 {userType === 'official' && (
-                  <button className="px-3 py-1.5 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700">
+                  <button 
+                    onClick={() => {
+                      setSelectedProject(selectedProject);
+                      setShowExpenseModal(true);
+                    }}
+                    className="px-3 py-1.5 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700"
+                  >
                     + नया व्यय जोड़ें / Add New Expenditure
                   </button>
                 )}
@@ -1316,6 +1631,368 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Expenditure Modal */}
+      {showExpenseModal && selectedProject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg p-6 max-w-lg w-full mx-4`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">नया व्यय जोड़ें / Add New Expenditure</h3>
+              <button 
+                onClick={() => setShowExpenseModal(false)}
+                className={`${darkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {web3State.isConnected && selectedProject ? (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                
+                // Define variables that need to be accessed in both try and catch blocks
+                let submittedDescription = '';
+                
+                try {
+                  if (!web3State.isConnected) {
+                    alert('कृपया पहले अपना वॉलेट कनेक्ट करें / Please connect your wallet first');
+                    return;
+                  }
+                  
+                  if (!web3State.account) {
+                    alert('वॉलेट एकाउंट नहीं मिला / Wallet account not found');
+                    return;
+                  }
+                  
+                  const formElement = e.target as HTMLFormElement;
+                  const formAmount = formElement.amount.value;
+                  const formCategory = formElement.category.value;
+                  const formDescription = formElement.description.value;
+                  
+                  // Store the description in the outer variable for access in catch block
+                  submittedDescription = formDescription;
+                  
+                  if (!formAmount || parseFloat(formAmount) <= 0) {
+                    alert('कृपया वैध राशि दर्ज करें / Please enter a valid amount');
+                    return;
+                  }
+                  
+                  if (!formDescription) {
+                    alert('कृपया विवरण दर्ज करें / Please enter a description');
+                    return;
+                  }
+                  
+                  // Show success message first for better user experience
+                  alert('व्यय दर्ज किया जा रहा है, कृपया MetaMask अनुरोध की पुष्टि करें / Recording expenditure, please confirm the MetaMask request');
+                  
+                  // Initialize Web3 with the Ethereum provider
+                  const web3 = new Web3(window.ethereum);
+                  
+                  // Create a new expenditure object before the blockchain transaction
+                  // This provides immediate UI feedback
+                  const newExpenditure: Expenditure = {
+                    id: (selectedProject.expenditures?.length || 0) + 1,
+                    amount: parseFloat(formAmount) * 100, // Convert to paise/smallest unit
+                    date: new Date().toISOString().split('T')[0],
+                    category: formCategory,
+                    description: formDescription,
+                    approvedBy: 'Pending Blockchain Confirmation'
+                  };
+                  
+                  // Update UI immediately (optimistic update)
+                  setSelectedProject(prev => {
+                    if (!prev) return null;
+                    return {
+                      ...prev,
+                      expenditures: [...(prev.expenditures || []), newExpenditure]
+                    };
+                  });
+                  
+                  // Close modal immediately for better UX
+                  setShowExpenseModal(false);
+                  
+                  const contractABI = [
+                    {
+                      "inputs": [],
+                      "stateMutability": "nonpayable",
+                      "type": "constructor"
+                    },
+                    {
+                      "anonymous": false,
+                      "inputs": [
+                        {
+                          "indexed": true,
+                          "internalType": "uint256",
+                          "name": "projectId",
+                          "type": "uint256"
+                        },
+                        {
+                          "indexed": false,
+                          "internalType": "uint256",
+                          "name": "transactionId",
+                          "type": "uint256"
+                        },
+                        {
+                          "indexed": false,
+                          "internalType": "uint256",
+                          "name": "amount",
+                          "type": "uint256"
+                        }
+                      ],
+                      "name": "FundsAllocated",
+                      "type": "event"
+                    },
+                    {
+                      "anonymous": false,
+                      "inputs": [
+                        {
+                          "indexed": true,
+                          "internalType": "uint256",
+                          "name": "projectId",
+                          "type": "uint256"
+                        },
+                        {
+                          "indexed": false,
+                          "internalType": "uint256",
+                          "name": "transactionId",
+                          "type": "uint256"
+                        },
+                        {
+                          "indexed": false,
+                          "internalType": "uint256",
+                          "name": "amount",
+                          "type": "uint256"
+                        },
+                        {
+                          "indexed": false,
+                          "internalType": "string",
+                          "name": "description",
+                          "type": "string"
+                        }
+                      ],
+                      "name": "FundsSpent",
+                      "type": "event"
+                    },
+                    {
+                      "inputs": [
+                        {
+                          "internalType": "address",
+                          "name": "official",
+                          "type": "address"
+                        }
+                      ],
+                      "name": "authorizeOfficial",
+                      "outputs": [],
+                      "stateMutability": "nonpayable",
+                      "type": "function"
+                    },
+                    {
+                      "inputs": [
+                        {
+                          "internalType": "uint256",
+                          "name": "projectId",
+                          "type": "uint256"
+                        },
+                        {
+                          "internalType": "uint256",
+                          "name": "amount",
+                          "type": "uint256"
+                        },
+                        {
+                          "internalType": "string",
+                          "name": "description",
+                          "type": "string"
+                        }
+                      ],
+                      "name": "recordExpense",
+                      "outputs": [
+                        {
+                          "internalType": "uint256",
+                          "name": "",
+                          "type": "uint256"
+                        }
+                      ],
+                      "stateMutability": "nonpayable",
+                      "type": "function"
+                    }
+                  ];
+                  
+                  const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+                  const contract = new web3.eth.Contract(contractABI, contractAddress) as unknown as BlockchainContract;
+                  
+                  // Convert amount to wei
+                  const amountWei = web3.utils.toWei(formAmount.toString(), 'ether');
+                  
+                  console.log(`Recording expense: Project ID=${selectedProject.id}, Amount=${amountWei}, Description="${formCategory}: ${formDescription}"`);
+                  
+                  // Record expense on blockchain
+                  await contract.methods.recordExpense(
+                    selectedProject.id,
+                    amountWei,
+                    `${formCategory}: ${formDescription}`
+                  ).send({ from: web3State.account });
+                  
+                  // Update the expenditure after transaction confirmation
+                  setSelectedProject(prev => {
+                    if (!prev) return null;
+                    
+                    // Find the pending expenditure and update its status
+                    const updatedExpenditures = prev.expenditures?.map(exp => {
+                      if (exp.approvedBy === 'Pending Blockchain Confirmation' && 
+                          exp.description === formDescription) {
+                        return {
+                          ...exp,
+                          approvedBy: 'Confirmed on Blockchain'
+                        };
+                      }
+                      return exp;
+                    });
+                    
+                    return {
+                      ...prev,
+                      expenditures: updatedExpenditures
+                    };
+                  });
+                  
+                  // Show success message
+                  console.log('Transaction successfully recorded on blockchain');
+                  
+                } catch (error: any) {
+                  console.error('Blockchain transaction error:', error);
+                  alert(`व्यय दर्ज करने में त्रुटि / Error recording expenditure: ${error.message}`);
+                  
+                  // Remove the pending transaction from UI on error
+                  setSelectedProject(prev => {
+                    if (!prev) return null;
+                    
+                    const filteredExpenditures = prev.expenditures?.filter(exp => 
+                      !(exp.approvedBy === 'Pending Blockchain Confirmation' && 
+                        exp.description === submittedDescription)
+                    );
+                    
+                    return {
+                      ...prev,
+                      expenditures: filteredExpenditures
+                    };
+                  });
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    परियोजना / Project
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedProject.name}
+                    className={`w-full p-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-100 border-gray-300 text-gray-900'} rounded-lg`}
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    राशि (ETH) / Amount (ETH)
+                  </label>
+                  <input
+                    type="number"
+                    name="amount"
+                    required
+                    min="0.0001"
+                    step="0.001"
+                    className={`w-full p-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} rounded-lg`}
+                    placeholder="0.1"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    श्रेणी / Category
+                  </label>
+                  <select 
+                    name="category"
+                    required
+                    className={`w-full p-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} rounded-lg`}
+                  >
+                    <option value="इन्फ्रास्ट्रक्चर / Infrastructure">इन्फ्रास्ट्रक्चर / Infrastructure</option>
+                    <option value="सॉफ्टवेयर / Software">सॉफ्टवेयर / Software</option>
+                    <option value="परामर्श / Consultation">परामर्श / Consultation</option>
+                    <option value="प्रशिक्षण / Training">प्रशिक्षण / Training</option>
+                    <option value="सामग्री / Materials">सामग्री / Materials</option>
+                    <option value="अन्य / Other">अन्य / Other</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    विवरण / Description
+                  </label>
+                  <textarea
+                    name="description"
+                    required
+                    className={`w-full p-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} rounded-lg`}
+                    rows={3}
+                    placeholder="व्यय का विवरण / Description of expenditure"
+                  ></textarea>
+                </div>
+                
+                <div className="flex items-center mt-2">
+                  <input
+                    type="checkbox"
+                    id="blockchain-confirm"
+                    required
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="blockchain-confirm" className={`ml-2 block text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    मैं पुष्टि करता/करती हूँ कि यह लेनदेन ब्लॉकचेन पर दर्ज किया जाएगा और इसे मिटाया नहीं जा सकता / 
+                    I confirm that this transaction will be recorded on the blockchain and cannot be deleted
+                  </label>
+                </div>
+                
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowExpenseModal(false)}
+                    className={`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  >
+                    रद्द करें / Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                  >
+                    दर्ज करें / Record
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-6">
+                <Wallet className={`h-12 w-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>
+                  व्यय रिकॉर्ड करने के लिए MetaMask वॉलेट को कनेक्ट करें / 
+                  Connect MetaMask wallet to record expenditure
+                </p>
+                <button
+                  onClick={connectMetaMask}
+                  className="px-4 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600"
+                >
+                  वॉलेट कनेक्ट करें / Connect Wallet
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Add this at the end of return, before the closing div */}
+      <div className="fixed bottom-4 right-4">
+        <button 
+          onClick={toggleDebug}
+          className="bg-gray-200 hover:bg-gray-300 text-gray-800 p-2 rounded-full"
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+      </div>
+      <DebugPanel />
     </div>
   );
 }
